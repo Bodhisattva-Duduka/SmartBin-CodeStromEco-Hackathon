@@ -78,7 +78,7 @@ router.post('/classify', upload.single('image'), async (req, res) => {
           Authorization: `Bearer ${HF_API_KEY}`,
           'Content-Type': 'application/octet-stream'
         },
-        timeout: 60000
+        timeout: 30000
       });
       // success
       console.log('HF success:', modelSlug, 'status', hfResp.status);

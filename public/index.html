@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartBin - Home</title>
   <style>
-    /* Reset & Base */
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
     body { background: #f8fafc; color: #111827; }
 
-    /* Navbar */
     nav {
       display: flex; justify-content: space-between; align-items: center;
       padding: 1rem 2rem; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.05);
@@ -24,22 +22,19 @@
     }
     nav .login { font-weight: 500; color: #2563eb; cursor: pointer; }
 
-    /* Main content */
     .container {
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; padding: 3rem 1rem; min-height: 80vh;
     }
 
-    /* Buttons */
     button {
-      border: none; padding: 1rem 2rem; font-size: 1.2rem;
+      border: none; padding: 1rem 2rem; font-size: 1.1rem;
       border-radius: 12px; cursor: pointer; transition: 0.3s;
       background: #2563eb; color: white; margin: 1rem 0;
       box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
     }
     button:hover { background: #1d4ed8; transform: scale(1.05); }
 
-    /* Input field */
     .input-box {
       margin-top: 1rem;
       width: 100%; max-width: 400px;
@@ -49,14 +44,37 @@
       flex: 1; padding: 0.8rem 1rem; border: 1px solid #d1d5db;
       border-radius: 10px; font-size: 1rem;
     }
-    .input-box input:focus { border-color: #2563eb; outline: none; }
 
-    /* Animations */
-    .fade-in { animation: fadeIn 0.8s ease-in-out; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    .result-box {
+      margin-top: 2rem; width: 90%; max-width: 500px;
+      padding: 1rem; border-radius: 12px;
+      background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      min-height: 80px;
     }
+    .result-box h3 { margin-bottom: 0.5rem; color: #2563eb; }
+    .result-content { font-size: 1rem; color: #111; }
+
+    ul.class-list { list-style: none; padding: 0; margin: 0; }
+    ul.class-list li {
+      margin: 6px 0; padding: 8px 12px;
+      border-radius: 8px;
+      background: #f3f4f6;
+      display: flex; justify-content: space-between;
+    }
+    .conf-bar {
+      height: 6px;
+      background: #2563eb;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+
+    /* Camera modal */
+    #cameraModal {
+      display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.85); justify-content:center; align-items:center;
+      flex-direction:column; z-index:1000;
+    }
+    #cameraStream { width:90%; max-width:400px; border-radius:12px; border:3px solid white; }
   </style>
 </head>
 <body>
@@ -73,105 +91,139 @@
 
   <!-- Main Section -->
   <div class="container fade-in">
-    <button onclick="document.getElementById('fileInput').click()">📷 Scan Image</button>
-    <input type="file" id="fileInput" style="display:none" accept="image/*">
+    <button onclick="openCamera()">📷 Scan Image</button>
 
     <button onclick="askAI()">🤖 Ask AI</button>
     <div class="input-box">
       <input type="text" id="question" placeholder="Type your question here...">
     </div>
+
+    <!-- Results section -->
+    <div class="result-box" id="classificationResult">
+      <h3>Classification Result</h3>
+      <div class="result-content" id="classResultText">No image scanned yet.</div>
+    </div>
+
+    <div class="result-box" id="aiResponse">
+      <h3>AI Response</h3>
+      <div class="result-content" id="aiResultText">No question asked yet.</div>
+    </div>
+  </div>
+
+  <!-- Camera Modal -->
+  <div id="cameraModal">
+    <video id="cameraStream" autoplay playsinline></video>
+    <button onclick="capturePhoto()">📸 Capture</button>
+    <button onclick="closeCamera()" style="background:#ef4444;">❌ Close</button>
   </div>
 
   <script>
-    // preview + upload + result rendering
-    const fileInput = document.getElementById('fileInput');
-  
-    function createResultCard(record) {
-      return `
-        <div id="resultCard" style="margin-top:20px;max-width:520px;background:white;padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.08);">
-          <div style="display:flex;gap:12px;align-items:center;">
-            <div style="width:96px;height:96px;border-radius:8px;overflow:hidden;background:#f3f4f6;display:flex;align-items:center;justify-content:center;">
-              <img id="resultImg" src="" style="max-width:100%;max-height:100%;object-fit:cover;" />
-            </div>
-            <div style="flex:1;">
-              <h3 id="resLabel" style="margin-bottom:6px;font-size:1.1rem;color:#0f172a;">Label</h3>
-              <div id="resConfidence" style="margin-bottom:8px;color:#374151">Confidence</div>
-              <div id="resTip" style="color:#065f46;font-weight:600"></div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-  
-    fileInput.addEventListener('change', async function () {
-      const file = this.files[0];
-      if (!file) return;
-  
-      // show preview image in result card while uploading
-      const container = document.querySelector('.container');
-  
-      // create result area if not present
-      let resultArea = document.getElementById('resultArea');
-      if (!resultArea) {
-        resultArea = document.createElement('div');
-        resultArea.id = 'resultArea';
-        container.appendChild(resultArea);
-      }
-      resultArea.innerHTML = createResultCard({});
-      document.getElementById('resultImg').src = URL.createObjectURL(file);
-      document.getElementById('resLabel').textContent = 'Classifying...';
-      document.getElementById('resConfidence').textContent = '';
-  
-      // build formData
-      const formData = new FormData();
-      formData.append('image', file);
-  
+    let stream;
+    const classBox = document.getElementById("classResultText");
+
+    // Open Camera
+    async function openCamera() {
+      const modal = document.getElementById("cameraModal");
+      modal.style.display = "flex";
       try {
-        const resp = await fetch('/api/classify', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await resp.json();
-  
-        if (!data.success) {
-          document.getElementById('resLabel').textContent = 'Error';
-          document.getElementById('resTip').textContent = data.error || 'Classification failed';
-          return;
-        }
-  
-        const r = data.record;
-        document.getElementById('resLabel').textContent = r.label;
-        document.getElementById('resConfidence').textContent = `Confidence: ${r.confidence ? r.confidence + '%' : 'N/A'}`;
-        document.getElementById('resTip').textContent = r.tip || '';
-  
-        // revoke the preview object url after shown
-        // URL.revokeObjectURL(...); // optional
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        document.getElementById("cameraStream").srcObject = stream;
       } catch (err) {
-        console.error(err);
-        document.getElementById('resLabel').textContent = 'Error';
-        document.getElementById('resTip').textContent = 'Network or server error. Check console.';
+        alert("Camera access denied: " + err.message);
+        closeCamera();
       }
-    });
-  
-    // Ask AI (Gemini) - keep as earlier, calls /api/ask
+    }
+
+    // Close Camera
+    function closeCamera() {
+      document.getElementById("cameraModal").style.display = "none";
+      if (stream) stream.getTracks().forEach(track => track.stop());
+    }
+
+    // Capture Photo
+    function capturePhoto() {
+      const video = document.getElementById("cameraStream");
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+
+      canvas.toBlob(async (blob) => {
+        // Preview image
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(blob);
+        img.style.maxWidth = "100%";
+        img.style.borderRadius = "10px";
+        img.style.marginBottom = "10px";
+        const container = document.getElementById("classificationResult");
+        const old = container.querySelector("img");
+        if (old) old.remove();
+        container.insertBefore(img, classBox);
+
+        // Send to backend
+        const formData = new FormData();
+        formData.append("image", blob, "capture.jpg");
+
+        classBox.innerHTML = "⏳ Classifying…";
+
+        try {
+          const res = await fetch("/api/classify", { method: "POST", body: formData });
+          const data = await res.json();
+
+          if (!res.ok || !data.success) {
+            classBox.innerText = "❌ " + (data.error || `HTTP ${res.status}`);
+            return;
+          }
+
+          const record = data.record || {};
+          const results = Array.isArray(record.result) ? record.result : [];
+          const model = record.usedModel || "unknown";
+
+          if (!results.length) {
+            classBox.innerText = "No predictions returned.";
+            return;
+          }
+
+          let html = `<div style="margin-bottom:8px;">Model: <strong>${model}</strong></div><ul class='class-list'>`;
+          results.forEach(item => {
+            const label = item.label || "Unknown";
+            const scorePct = Math.round((item.score || 0) * 100);
+            html += `<li><span>${label}</span><span>${scorePct}%</span></li>
+                     <div class="conf-bar" style="width:${scorePct}%"></div>`;
+          });
+          html += "</ul>";
+          classBox.innerHTML = html;
+        } catch (err) {
+          console.error(err);
+          classBox.innerText = "⚠️ Failed to classify image.";
+        }
+      }, "image/jpeg");
+
+      closeCamera();
+    }
+
+    // Ask AI
     async function askAI() {
-      const q = document.getElementById('question').value;
-      if (!q) return alert('Please enter a question for AI!');
+      const q = document.getElementById("question").value;
+      if (!q) {
+        alert("Please enter a question for AI!");
+        return;
+      }
       try {
-        const res = await fetch('/api/ask', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: q })
         });
         const data = await res.json();
-        alert('AI says:\n\n' + (data.answer || data.error));
+        document.getElementById("aiResultText").innerText = data.answer || "No answer received.";
       } catch (err) {
         console.error(err);
-        alert('AI request failed');
+        document.getElementById("aiResultText").innerText = "⚠️ Error asking AI.";
       }
     }
   </script>
-  
 
 </body>
 </html>

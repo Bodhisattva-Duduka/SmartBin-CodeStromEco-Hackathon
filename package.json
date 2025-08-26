@@ -1,0 +1,29 @@
+{
+  "name": "ecotrack-codestromeco-hackathon",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev" : "nodemon main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bodhisattva-Duduka/EcoTrack-CodeStromEco-Hackathon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Bodhisattva-Duduka/EcoTrack-CodeStromEco-Hackathon/issues"
+  },
+  "homepage": "https://github.com/Bodhisattva-Duduka/EcoTrack-CodeStromEco-Hackathon#readme",
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "nodemon": "^3.1.10"
+  }
+}

@@ -5,76 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartBin - Home</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-    body { background: #f8fafc; color: #111827; }
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+    * { margin:0; padding:0; box-sizing:border-box; font-family: "Poppins",sans-serif; }
+    body { background:#f0fdf4; color:#064e3b; } /* light green background */
 
+    /* Navbar */
     nav {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 1rem 2rem; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      position: sticky; top: 0; z-index: 10;
+      display:flex; justify-content:space-between; align-items:center;
+      padding:1rem 2rem; background:#fff;
+      box-shadow:0 2px 6px rgba(0,0,0,0.05);
+      position:sticky; top:0; z-index:10;
     }
-    nav .logo { font-size: 1.4rem; font-weight: bold; color: #2563eb; }
-    nav ul { list-style: none; display: flex; gap: 2rem; }
-    nav ul li { cursor: pointer; font-size: 1rem; position: relative; }
+    nav .logo { font-size:1.4rem; font-weight:bold; color:#16a34a; } /* green */
+    nav ul { list-style:none; display:flex; gap:2rem; }
+    nav ul li { cursor:pointer; font-size:1rem; position:relative; }
     nav ul li.active::after {
-      content: ""; position: absolute; bottom: -5px; left: 0; right: 0;
-      height: 2px; background: #2563eb; border-radius: 2px;
+      content:""; position:absolute; bottom:-5px; left:0; right:0;
+      height:2px; background:#16a34a; border-radius:2px;
     }
-    nav .login { font-weight: 500; color: #2563eb; cursor: pointer; }
+    nav .login { font-weight:500; color:#16a34a; cursor:pointer; }
 
+    /* Container */
     .container {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 3rem 1rem; min-height: 80vh;
+      display:flex; flex-direction:column; align-items:center;
+      justify-content:center; padding:3rem 1rem; min-height:80vh;
     }
 
+    /* Buttons */
     button {
-      border: none; padding: 1rem 2rem; font-size: 1.1rem;
-      border-radius: 12px; cursor: pointer; transition: 0.3s;
-      background: #2563eb; color: white; margin: 1rem 0;
-      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+      border:none; padding:1rem 2rem; font-size:1.1rem;
+      border-radius:12px; cursor:pointer; transition:0.3s;
+      background:#16a34a; color:white; margin:0.7rem 0;
+      box-shadow:0 4px 10px rgba(22,163,74,0.25);
     }
-    button:hover { background: #1d4ed8; transform: scale(1.05); }
+    button:hover { background:#15803d; transform:scale(1.05); }
 
-    .input-box {
-      margin-top: 1rem;
-      width: 100%; max-width: 400px;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
+    /* Input box */
+    .input-box { margin-top:1rem; width:100%; max-width:400px;
+      display:flex; align-items:center; gap:0.5rem; }
     .input-box input {
-      flex: 1; padding: 0.8rem 1rem; border: 1px solid #d1d5db;
-      border-radius: 10px; font-size: 1rem;
+      flex:1; padding:0.8rem 1rem; border:1px solid #d1d5db;
+      border-radius:10px; font-size:1rem;
     }
 
+    /* Result boxes */
     .result-box {
-      margin-top: 2rem; width: 90%; max-width: 500px;
-      padding: 1rem; border-radius: 12px;
-      background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      min-height: 80px;
+      margin-top:2rem; width:90%; max-width:500px;
+      padding:1rem; border-radius:12px;
+      background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.05);
+      min-height:80px;
     }
-    .result-box h3 { margin-bottom: 0.5rem; color: #2563eb; }
-    .result-content { font-size: 1rem; color: #111; }
+    .result-box h3 { margin-bottom:0.5rem; color:#16a34a; }
+    .result-content { font-size:1rem; color:#111; }
 
-    ul.class-list { list-style: none; padding: 0; margin: 0; }
+    /* AI response box - scrollable */
+    #aiResultText {
+      max-height:200px; /* smaller */
+      overflow-y:auto;
+      padding-right:5px;
+    }
+
+    /* Classification list */
+    ul.class-list { list-style:none; padding:0; margin:0; }
     ul.class-list li {
-      margin: 6px 0; padding: 8px 12px;
-      border-radius: 8px;
-      background: #f3f4f6;
-      display: flex; justify-content: space-between;
+      margin:6px 0; padding:8px 12px; border-radius:8px;
+      background:#f0fdf4; display:flex; justify-content:space-between;
     }
-    .conf-bar {
-      height: 6px;
-      background: #2563eb;
-      border-radius: 4px;
-      margin-top: 4px;
-    }
+    .conf-bar { height:6px; background:#16a34a; border-radius:4px; margin-top:4px; }
 
     /* Camera modal */
     #cameraModal {
-      display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-      background:rgba(0,0,0,0.85); justify-content:center; align-items:center;
+      display:none; position:fixed; top:0; left:0;
+      width:100%; height:100%; background:rgba(0,0,0,0.85);
+      justify-content:center; align-items:center;
       flex-direction:column; z-index:1000;
     }
-    #cameraStream { width:90%; max-width:400px; border-radius:12px; border:3px solid white; }
+    #cameraStream {
+      width:90%; max-width:400px; border-radius:12px; border:3px solid white;
+    }
+
+    /* Spinner */
+    .spinner {
+      border:4px solid #f3f3f3;
+      border-top:4px solid #16a34a;
+      border-radius:50%;
+      width:30px; height:30px;
+      animation:spin 1s linear infinite;
+      margin:10px auto;
+    }
+    @keyframes spin { 100% { transform:rotate(360deg);} }
   </style>
 </head>
 <body>
@@ -92,18 +111,21 @@
   <!-- Main Section -->
   <div class="container fade-in">
     <button onclick="openCamera()">📷 Scan Image</button>
+    <input type="file" id="uploadInput" accept="image/*" style="display:none" onchange="uploadImage(this)">
+    <button onclick="document.getElementById('uploadInput').click()">📂 Upload Image</button>
 
     <button onclick="askAI()">🤖 Ask AI</button>
     <div class="input-box">
       <input type="text" id="question" placeholder="Type your question here...">
     </div>
 
-    <!-- Results section -->
+    <!-- Classification result -->
     <div class="result-box" id="classificationResult">
       <h3>Classification Result</h3>
       <div class="result-content" id="classResultText">No image scanned yet.</div>
     </div>
 
+    <!-- AI Response -->
     <div class="result-box" id="aiResponse">
       <h3>AI Response</h3>
       <div class="result-content" id="aiResultText">No question asked yet.</div>
@@ -120,110 +142,99 @@
   <script>
     let stream;
     const classBox = document.getElementById("classResultText");
+    const aiBox = document.getElementById("aiResultText");
 
-    // Open Camera
-    async function openCamera() {
-      const modal = document.getElementById("cameraModal");
-      modal.style.display = "flex";
+    function showSpinner(target) {
+      target.innerHTML = '<div class="spinner"></div><div style="text-align:center">Loading…</div>';
+    }
+
+    async function classifyBlob(blob) {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(blob);
+      img.style.maxWidth = "100%";
+      img.style.borderRadius = "10px";
+      img.style.marginBottom = "10px";
+      const container = document.getElementById("classificationResult");
+      const old = container.querySelector("img");
+      if (old) old.remove();
+      container.insertBefore(img, classBox);
+
+      const formData = new FormData();
+      formData.append("image", blob, "upload.jpg");
+      showSpinner(classBox);
+
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const res = await fetch("/api/classify", { method:"POST", body:formData });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          classBox.innerText = "❌ " + (data.error || `HTTP ${res.status}`);
+          return;
+        }
+        const record = data.record || {};
+        const results = Array.isArray(record.result) ? record.result : [];
+        const model = record.usedModel || "unknown";
+        if (!results.length) { classBox.innerText = "No predictions returned."; return; }
+        let html = `<div style="margin-bottom:8px;">Model: <strong>${model}</strong></div><ul class='class-list'>`;
+        results.forEach(item => {
+          const label = item.label || "Unknown";
+          const scorePct = Math.round((item.score || 0) * 100);
+          html += `<li><span>${label}</span><span>${scorePct}%</span></li>
+                   <div class="conf-bar" style="width:${scorePct}%"></div>`;
+        });
+        html += "</ul>";
+        classBox.innerHTML = html;
+      } catch(err) {
+        console.error(err);
+        classBox.innerText = "⚠️ Failed to classify image.";
+      }
+    }
+
+    // Camera functions
+    async function openCamera() {
+      document.getElementById("cameraModal").style.display="flex";
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment" } });
         document.getElementById("cameraStream").srcObject = stream;
-      } catch (err) {
+      } catch(err) {
         alert("Camera access denied: " + err.message);
         closeCamera();
       }
     }
-
-    // Close Camera
     function closeCamera() {
-      document.getElementById("cameraModal").style.display = "none";
-      if (stream) stream.getTracks().forEach(track => track.stop());
+      document.getElementById("cameraModal").style.display="none";
+      if (stream) stream.getTracks().forEach(t=>t.stop());
     }
-
-    // Capture Photo
     function capturePhoto() {
       const video = document.getElementById("cameraStream");
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0);
-
-      canvas.toBlob(async (blob) => {
-        // Preview image
-        const img = document.createElement("img");
-        img.src = URL.createObjectURL(blob);
-        img.style.maxWidth = "100%";
-        img.style.borderRadius = "10px";
-        img.style.marginBottom = "10px";
-        const container = document.getElementById("classificationResult");
-        const old = container.querySelector("img");
-        if (old) old.remove();
-        container.insertBefore(img, classBox);
-
-        // Send to backend
-        const formData = new FormData();
-        formData.append("image", blob, "capture.jpg");
-
-        classBox.innerHTML = "⏳ Classifying…";
-
-        try {
-          const res = await fetch("/api/classify", { method: "POST", body: formData });
-          const data = await res.json();
-
-          if (!res.ok || !data.success) {
-            classBox.innerText = "❌ " + (data.error || `HTTP ${res.status}`);
-            return;
-          }
-
-          const record = data.record || {};
-          const results = Array.isArray(record.result) ? record.result : [];
-          const model = record.usedModel || "unknown";
-
-          if (!results.length) {
-            classBox.innerText = "No predictions returned.";
-            return;
-          }
-
-          let html = `<div style="margin-bottom:8px;">Model: <strong>${model}</strong></div><ul class='class-list'>`;
-          results.forEach(item => {
-            const label = item.label || "Unknown";
-            const scorePct = Math.round((item.score || 0) * 100);
-            html += `<li><span>${label}</span><span>${scorePct}%</span></li>
-                     <div class="conf-bar" style="width:${scorePct}%"></div>`;
-          });
-          html += "</ul>";
-          classBox.innerHTML = html;
-        } catch (err) {
-          console.error(err);
-          classBox.innerText = "⚠️ Failed to classify image.";
-        }
-      }, "image/jpeg");
-
+      ctx.drawImage(video,0,0);
+      canvas.toBlob(blob=>{ if(blob) classifyBlob(blob); },"image/jpeg");
       closeCamera();
+    }
+
+    // Upload
+    function uploadImage(input) {
+      const file = input.files[0];
+      if (file) classifyBlob(file);
     }
 
     // Ask AI
     async function askAI() {
       const q = document.getElementById("question").value;
-      if (!q) {
-        alert("Please enter a question for AI!");
-        return;
-      }
+      if (!q) { alert("Please enter a question for AI!"); return; }
+      showSpinner(aiBox);
       try {
-        const res = await fetch("/api/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: q })
-        });
+        const res = await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q})});
         const data = await res.json();
-        document.getElementById("aiResultText").innerText = data.answer || "No answer received.";
-      } catch (err) {
+        aiBox.innerText = data.answer || "No answer received.";
+      } catch(err) {
         console.error(err);
-        document.getElementById("aiResultText").innerText = "⚠️ Error asking AI.";
+        aiBox.innerText = "⚠️ Error asking AI.";
       }
     }
   </script>
-
 </body>
 </html>

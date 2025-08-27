@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartBin - Home</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
     * { margin:0; padding:0; box-sizing:border-box; font-family: "Poppins",sans-serif; }
-    body { background:#f0fdf4; color:#064e3b; } /* light green background */
+    body { background:#f0fdf4; color:#064e3b; }
 
     /* Navbar */
     nav {
@@ -16,7 +16,7 @@
       box-shadow:0 2px 6px rgba(0,0,0,0.05);
       position:sticky; top:0; z-index:10;
     }
-    nav .logo { font-size:1.4rem; font-weight:bold; color:#16a34a; } /* green */
+    nav .logo { font-size:1.4rem; font-weight:bold; color:#16a34a; }
     nav ul { list-style:none; display:flex; gap:2rem; }
     nav ul li { cursor:pointer; font-size:1rem; position:relative; }
     nav ul li.active::after {
@@ -26,10 +26,8 @@
     nav .login { font-weight:500; color:#16a34a; cursor:pointer; }
 
     /* Container */
-    .container {
-      display:flex; flex-direction:column; align-items:center;
-      justify-content:center; padding:3rem 1rem; min-height:80vh;
-    }
+    .container { display:flex; flex-direction:column; align-items:center;
+      justify-content:center; padding:3rem 1rem; min-height:80vh; }
 
     /* Buttons */
     button {
@@ -58,20 +56,15 @@
     .result-box h3 { margin-bottom:0.5rem; color:#16a34a; }
     .result-content { font-size:1rem; color:#111; }
 
-    /* AI response box - scrollable */
+    /* AI response box */
     #aiResultText {
-      max-height:200px; /* smaller */
+      max-height:200px;
       overflow-y:auto;
       padding-right:5px;
     }
 
-    /* Classification list */
-    ul.class-list { list-style:none; padding:0; margin:0; }
-    ul.class-list li {
-      margin:6px 0; padding:8px 12px; border-radius:8px;
-      background:#f0fdf4; display:flex; justify-content:space-between;
-    }
-    .conf-bar { height:6px; background:#16a34a; border-radius:4px; margin-top:4px; }
+    /* Confidence bar */
+    .conf-bar { height:6px; background:#16a34a; border-radius:4px; margin-top:6px; }
 
     /* Camera modal */
     #cameraModal {
@@ -80,9 +73,7 @@
       justify-content:center; align-items:center;
       flex-direction:column; z-index:1000;
     }
-    #cameraStream {
-      width:90%; max-width:400px; border-radius:12px; border:3px solid white;
-    }
+    #cameraStream { width:90%; max-width:400px; border-radius:12px; border:3px solid white; }
 
     /* Spinner */
     .spinner {
@@ -170,19 +161,24 @@
           classBox.innerText = "❌ " + (data.error || `HTTP ${res.status}`);
           return;
         }
+
         const record = data.record || {};
-        const results = Array.isArray(record.result) ? record.result : [];
+        const label = record.label || "Unknown";
+        const conf = record.confidence ? record.confidence + "%" : "N/A";
+        const tip = record.tip || "";
         const model = record.usedModel || "unknown";
-        if (!results.length) { classBox.innerText = "No predictions returned."; return; }
-        let html = `<div style="margin-bottom:8px;">Model: <strong>${model}</strong></div><ul class='class-list'>`;
-        results.forEach(item => {
-          const label = item.label || "Unknown";
-          const scorePct = Math.round((item.score || 0) * 100);
-          html += `<li><span>${label}</span><span>${scorePct}%</span></li>
-                   <div class="conf-bar" style="width:${scorePct}%"></div>`;
-        });
-        html += "</ul>";
+
+        let html = `<div style="margin-bottom:8px;">Model: <strong>${model}</strong></div>`;
+        html += `<p><strong>Label:</strong> ${label}</p>`;
+        html += `<p><strong>Confidence:</strong> ${conf}</p>`;
+        if (record.confidence) {
+          html += `<div class="conf-bar" style="width:${record.confidence}%"></div>`;
+        }
+        if (tip) {
+          html += `<p style="margin-top:10px; color:#15803d;"><em>Tip:</em> ${tip}</p>`;
+        }
         classBox.innerHTML = html;
+
       } catch(err) {
         console.error(err);
         classBox.innerText = "⚠️ Failed to classify image.";

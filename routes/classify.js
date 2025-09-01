@@ -4,28 +4,19 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
-const { Client } = require("@gradio/client"); // ✅ use gradio client
+const axios = require("axios");
 
 const router = express.Router();
-const upload = multer({ dest: "uploads/", limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ dest: "uploads/", limits: { fileSize: 12 * 1024 * 1024 } }); // 12MB limit
 
 const DB_PATH = path.join(__dirname, "..", "data", "db.json");
-
-const TIP_MAP = {
-  plastic: "Remove caps & rinse before recycling if required.",
-  paper: "Keep dry and flatten before recycling.",
-  glass: "Rinse and separate lids; handle with care.",
-  metal: "Empty & rinse; recycle with other metals.",
-  organic: "Compost if possible; do not mix with plastics.",
-  battery: "Do not dispose in regular trash — take to hazardous collection.",
-  unknown: "Check local disposal guidelines.",
-};
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 function readDB() {
   try {
     if (!fs.existsSync(DB_PATH)) return [];
-    const raw = fs.readFileSync(DB_PATH, "utf8");
-    return JSON.parse(raw || "[]");
+    return JSON.parse(fs.readFileSync(DB_PATH, "utf8") || "[]");
   } catch (e) {
     console.error("readDB error:", e);
     return [];
@@ -36,15 +27,22 @@ function writeDB(arr) {
     fs.writeFileSync(DB_PATH, JSON.stringify(arr, null, 2), "utf8");
   } catch (e) {
     console.error("writeDB error:", e);
-    throw e;
   }
 }
 
+function toBase64(buffer) {
+  return buffer.toString("base64");
+}
+
 router.post("/classify", upload.single("image"), async (req, res) => {
-  if (!req.file)
-    return res
-      .status(400)
-      .json({ success: false, error: 'No file uploaded (field name must be "image")' });
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: "No file uploaded (field name = image)" });
+  }
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({ success: false, error: "Missing GEMINI_API_KEY in environment" });
+  }
+
+  const imagePath = path.resolve(req.file.path);
 
   console.log("--- classify request ---");
   console.log("file info:", {
@@ -55,33 +53,50 @@ router.post("/classify", upload.single("image"), async (req, res) => {
     size: req.file.size,
   });
 
-  const imagePath = path.resolve(req.file.path);
-  const imageBuffer = fs.readFileSync(imagePath);
-
   try {
-    // ✅ Connect to your HF Space
-    const client = await Client.connect("Bodhisattva-Duduka/RecyclingNetSpace");
+    const buffer = fs.readFileSync(imagePath);
+    const b64 = toBase64(buffer);
 
-    // Call the Gradio /predict endpoint
-    const result = await client.predict("/predict", {
-      image: new Blob([imageBuffer]),
+    const promptText = `Identify this trash (brief): what is it? Also explain:
+1) How to safely dispose it
+2) How to recycle it (step-by-step, short)`;
+
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              inline_data: {
+                mime_type: req.file.mimetype || "image/jpeg",
+                data: b64,
+              },
+            },
+            {
+              text: promptText,
+            },
+          ],
+        },
+      ],
+      // you can add additional generation params here if needed
+      // e.g. temperature, maxOutputTokens, safety settings (see docs)
+    };
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+    const geminiResp = await axios.post(url, payload, {
+      headers: { "Content-Type": "application/json" },
+      timeout: 120000, // 2 minutes
     });
 
-    console.log("Space response:", result.data);
-
-    let label = "unknown";
-    let confidence = null;
-
-    if (Array.isArray(result.data) && result.data.length > 0) {
-      // If model returns array of {label, confidence}
-      const top = result.data[0];
-      label = top.label || "unknown";
-      confidence = top.confidence
-        ? (top.confidence * 100).toFixed(2)
-        : null;
-    } else if (typeof result.data === "string") {
-      // If model returns just a string label
-      label = result.data;
+    // parse Gemini response robustly
+    const candidate = geminiResp.data?.candidates?.[0] || null;
+    let answer = "";
+    if (candidate && Array.isArray(candidate.content?.parts)) {
+      answer = candidate.content.parts.map(p => p.text || "").join("\n").trim();
+    } else if (typeof geminiResp.data === "string") {
+      answer = geminiResp.data;
+    } else {
+      answer = JSON.stringify(geminiResp.data).slice(0, 2000);
     }
 
     const record = {
@@ -89,37 +104,32 @@ router.post("/classify", upload.single("image"), async (req, res) => {
       timestamp: new Date().toISOString(),
       originalName: req.file.originalname || req.file.filename,
       filename: req.file.filename,
-      label,
-      confidence,
-      tip: TIP_MAP[label.toLowerCase()] || TIP_MAP.unknown,
-      usedModel: "Bodhisattva-Duduka/RecyclingNetSpace",
+      labelText: answer,
+      usedModel: `Gemini(${GEMINI_MODEL})`,
     };
 
+    // persist locally for history (optional)
     const db = readDB();
     db.push(record);
     writeDB(db);
 
-    try {
-      fs.unlinkSync(imagePath);
-    } catch (e) {
-      console.warn("could not delete temp file:", e.message);
-    }
+    // remove temp upload
+    try { fs.unlinkSync(imagePath); } catch (e) { console.warn("unlink failed:", e.message); }
 
     return res.json({ success: true, record });
   } catch (err) {
-    console.error("Error calling Space:", err.message || err);
+    console.error("Gemini / classify error:", err.response?.data || err.message || err);
+    try { fs.unlinkSync(imagePath); } catch (e) {}
     return res.status(500).json({
       success: false,
-      error: err.message || "Processing failed",
+      error: "Gemini request failed",
+      details: err.response?.data || err.message || String(err)
     });
-  } finally {
-    console.log("--- classify request finished ---");
   }
 });
 
 router.get("/history", (req, res) => {
-  const db = readDB();
-  res.json(db);
+  res.json(readDB());
 });
 
 module.exports = router;

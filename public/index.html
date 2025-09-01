@@ -134,12 +134,14 @@
     let stream;
     const classBox = document.getElementById("classResultText");
     const aiBox = document.getElementById("aiResultText");
-
+  
     function showSpinner(target) {
       target.innerHTML = '<div class="spinner"></div><div style="text-align:center">Loading…</div>';
     }
-
+  
+    // Full classifyBlob sends FormData(image) to /api/classify and displays Gemini answer
     async function classifyBlob(blob) {
+      // preview image
       const img = document.createElement("img");
       img.src = URL.createObjectURL(blob);
       img.style.maxWidth = "100%";
@@ -149,43 +151,68 @@
       const old = container.querySelector("img");
       if (old) old.remove();
       container.insertBefore(img, classBox);
-
+  
+      // prepare upload
       const formData = new FormData();
       formData.append("image", blob, "upload.jpg");
+  
+      // show spinner while backend/Gemini are working
       showSpinner(classBox);
-
+      aiBox.innerHTML = "No question asked yet."; // clear AI box for clarity
+  
       try {
-        const res = await fetch("/api/classify", { method:"POST", body:formData });
+        const res = await fetch("/api/classify", { method: "POST", body: formData });
         const data = await res.json();
+  
         if (!res.ok || !data.success) {
-          classBox.innerText = "❌ " + (data.error || `HTTP ${res.status}`);
+          const err = data?.error || `HTTP ${res.status}`;
+          classBox.innerText = "❌ " + err;
+          // if backend provided details, show them in console and AI area
+          console.error('classify error details:', data?.details || data);
+          aiBox.innerText = data?.details ? JSON.stringify(data.details) : "No further details.";
           return;
         }
-
+  
         const record = data.record || {};
-        const label = record.label || "Unknown";
-        const conf = record.confidence ? record.confidence + "%" : "N/A";
-        const tip = record.tip || "";
-        const model = record.usedModel || "unknown";
-
+        const labelText = record.labelText || "";
+        const model = record.usedModel || "Gemini";
+        const originalName = record.originalName || "uploaded image";
+  
+        // show classification + Gemini response
         let html = `<div style="margin-bottom:8px;">Model: <strong>${model}</strong></div>`;
-        html += `<p><strong>Label:</strong> ${label}</p>`;
-        html += `<p><strong>Confidence:</strong> ${conf}</p>`;
-        if (record.confidence) {
-          html += `<div class="conf-bar" style="width:${record.confidence}%"></div>`;
+        html += `<p><strong>File:</strong> ${originalName}</p>`;
+  
+        // If labelText is long, show truncated summary and full text below
+        if (labelText) {
+          html += `<div style="margin-top:12px; padding:10px; border-radius:8px; background:#ecfdf5;">
+                     <p style="margin:0 0 6px 0;"><strong>♻️ Recycling & Disposal Advice (Gemini):</strong></p>
+                     <div style="white-space:pre-wrap; line-height:1.4;">${escapeHtml(labelText)}</div>
+                   </div>`;
+        } else {
+          html += `<p>No text answer received from Gemini.</p>`;
         }
-        if (tip) {
-          html += `<p style="margin-top:10px; color:#15803d;"><em>Tip:</em> ${tip}</p>`;
-        }
+  
         classBox.innerHTML = html;
-
-      } catch(err) {
+  
+        // also put same content into AI response box (smaller area)
+        aiBox.innerHTML = labelText ? `<div style="white-space:pre-wrap;">${escapeHtml(labelText)}</div>` : "No answer received.";
+  
+      } catch (err) {
         console.error(err);
         classBox.innerText = "⚠️ Failed to classify image.";
+        aiBox.innerText = "⚠️ Error contacting server.";
       }
     }
-
-    // Camera functions
+  
+    // small helper to prevent HTML injection from returned text
+    function escapeHtml(s) {
+      if (!s) return "";
+      return s.replace(/[&<>"'`]/g, function (m) {
+        return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "`": "&#96;" })[m];
+      });
+    }
+  
+    // Camera functions (unchanged)
     async function openCamera() {
       document.getElementById("cameraModal").style.display="flex";
       try {
@@ -207,17 +234,17 @@
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video,0,0);
-      canvas.toBlob(blob=>{ if(blob) classifyBlob(blob); },"image/jpeg");
+      canvas.toBlob(blob=>{ if(blob) classifyBlob(blob); },"image/jpeg", 0.8);
       closeCamera();
     }
-
+  
     // Upload
     function uploadImage(input) {
       const file = input.files[0];
       if (file) classifyBlob(file);
     }
-
-    // Ask AI
+  
+    // Ask AI (existing Gemini QnA route if you have it); unchanged
     async function askAI() {
       const q = document.getElementById("question").value;
       if (!q) { alert("Please enter a question for AI!"); return; }
@@ -232,5 +259,6 @@
       }
     }
   </script>
+  
 </body>
 </html>

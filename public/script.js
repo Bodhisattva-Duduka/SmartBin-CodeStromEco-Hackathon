@@ -31,6 +31,30 @@ const processingOverlay = document.getElementById('processingOverlay');
 
 let localStream = null;
 
+let points = parseInt(localStorage.getItem('smartbin_points') || '0', 10);
+
+function updateRewardsUI() {
+  const pointsEl = document.getElementById('pointsValue');
+  const bar = document.getElementById('pointsBar');
+  const badge = document.getElementById('badgeText');
+
+  pointsEl.textContent = points;
+
+  // simple level system
+  let level = 'No badge yet — keep recycling!';
+  let pct = 0;
+  if (points >= 200) { level = "🥇 Gold Recycler!"; pct = 100; }
+  else if (points >= 100) { level = "🥈 Silver Recycler!"; pct = ((points - 100) / 100) * 100; }
+  else if (points >= 50) { level = "🥉 Bronze Recycler!"; pct = ((points - 50) / 50) * 100; }
+  else { pct = (points / 50) * 100; }
+
+  bar.style.width = `${Math.min(100, pct)}%`;
+  badge.textContent = level;
+
+  // persist
+  localStorage.setItem('smartbin_points', points);
+}
+
 /* ---------------- utilities ---------------- */
 function toast(text, opts = { type: 'ok', timeout: 3000 }) {
   const el = document.createElement('div');
@@ -429,6 +453,10 @@ function displayResult(rec) {
     ts: rec.timestamp || Date.now(),
     thumb: 'trashimage.png' // static thumbnail for all recents
   });
+  // award points on every successful classification
+points += 10;
+updateRewardsUI();
+
 }
 
 /* ---------------- recent helpers (static thumb) ---------------- */
@@ -479,7 +507,19 @@ async function fetchAndRenderHistory() {
   }
 }
 
+// reset button handler
+document.getElementById('resetBtn').addEventListener('click', () => {
+    if (confirm("Are you sure you want to reset your points and progress?")) {
+      points = 0;
+      localStorage.setItem('smartbin_points', points);
+      updateRewardsUI();
+      toast('Progress reset successfully!');
+    }
+  });
+  
+
 /* ---------------- init ---------------- */
 renderRecentFromLocal();
 fetchAndRenderHistory();
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCamera(); });
+updateRewardsUI();

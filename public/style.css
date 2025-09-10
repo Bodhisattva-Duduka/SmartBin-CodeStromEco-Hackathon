@@ -318,9 +318,9 @@ button:disabled {
     background: #f0fdf4;
 }
 .recent-item img.thumb {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
+    width: 25px;
+    height: 25px;
+    object-fit: fill;
     border-radius: 6px;
 }
 
@@ -484,3 +484,53 @@ footer {
         max-height: 180px;
     }
 }
+
+.rewards {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #ecfdf5;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  }
+  
+  .rewards h4 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: #065f46;
+  }
+  
+  .points {
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 6px;
+    color: #15803d;
+  }
+  
+  .rewards .progress {
+    height: 8px;
+    background: #d1fae5;
+    border-radius: 8px;
+    margin: 4px 0 6px;
+    overflow: hidden;
+  }
+  
+  .rewards .progress i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #16a34a, #15803d);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  
+  #badgeText {
+    font-size: 13px;
+    color: #064e3b;
+    margin-top: 4px;
+  }
+  
+  #resetBtn {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+  }
+  
